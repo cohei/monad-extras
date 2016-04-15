@@ -218,9 +218,7 @@ sequenceWhile p (m:ms) = do
 -- | Monadic equivalent to 'iterate'.  Note that it will not terminate, but may
 --   still be useful in the main event loop of a program, for example.
 iterateM :: Monad m => (a -> m a) -> a -> m [a]
-iterateM f x = do
-    x' <- f x
-    (x':) `liftM` iterateM f x'
+iterateM f x = (x:) `liftM` (iterateM f =<< f x)
 
 -- | A monadic version of 'iterate' which produces an infinite sequence of
 --   values using lazy I/O.
@@ -228,7 +226,7 @@ lazyIterateM :: (Monad m, MonadBaseControl IO m) => (a -> m a) -> a -> m [a]
 lazyIterateM f x = do
     y <- f x
     z <- control $ \run -> unsafeInterleaveIO $ run $ iterateM f y
-    return (y:z)
+    return (x:z)
 
 -- | Monadic equivalent to 'iterate', which uses Maybe to know when to
 --   terminate.
@@ -237,7 +235,7 @@ iterateMaybeM f x = do
     mx' <- f x
     case mx' of
         Nothing -> return []
-        Just x' -> (x':) `liftM` iterateMaybeM f x'
+        Just x' -> (x:) `liftM` iterateMaybeM f x'
 
 -- | A monadic unfold.
 unfoldM :: Monad m => (s -> m (Maybe (a, s))) -> s -> m [a]
